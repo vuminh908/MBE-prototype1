@@ -1,52 +1,69 @@
+// Serial port read:
+//   Code from user Robin2 on Arudino Forum used as reference
+// Interfacing with ADS1115 ADC+PGA:
+//   Example code from ADS1x15 documentation (by Bill Earl and Tony DiCola) used as reference
+
 #include <Servo.h>
 #include <Wire.h>
-// Receive up to 5 positions
+#include "Adafruit_ADS1015.h"
+/*
+// Master device's own servo, may be removed for consistency
 Servo myservo1;
 const byte servo1Pin = 9;
+*/
 
+// I2C IDs of link microcontrollers
+//const byte moduleID1 = 8;
 const byte moduleID2 = 8;
 const byte moduleID3 = 16;
 const byte moduleID4 = 24;
 const byte moduleID5 = 32;
 
-const byte maxBytesR = 2;
-byte receivedBytes2[maxBytesR];
-byte receivedBytes3[maxBytesR];
-byte receivedBytes4[maxBytesR];
-byte receivedBytes5[maxBytesR];
+// ADC objects (up to 4 using the ADS1115)
+Adafruit_ADS1115 adc2; // Default address is 0x48
+Adafruit_ADS1115 adc3(0x49);
+Adafruit_ADS1115 adc4(0x4A);
+Adafruit_ADS1115 adc5(0x4B);
 
-//const byte potentiometerPin = 0;
-//int rawPosVal1;
+// ADC pins
+const byte torqADCPin = 0;
+const byte posADCPin = 1;
 
-int rawPosVal2;
-int rawPosVal3;
-int rawPosVal4;
-int rawPosVal5;
+// Values received from ADCs
+//int16_t rawTorq1;
+int16_t rawTorq2;
+int16_t rawTorq3;
+int16_t rawTorq4;
+int16_t rawTorq5;
 
+//int16_t rawPos1;
+int16_t rawPos2;
+int16_t rawPos3;
+int16_t rawPos4;
+int16_t rawPos5;
+
+// Values for parsing input from serial port
 const byte numChars = 7;
 char input1[numChars];
 char input2[numChars];
 char input3[numChars];
 char input4[numChars];
 char input5[numChars];
-char output[numChars - 1];
-byte x1;
+boolean newData  = false;
+const char startMarker1 = 'a';
+const char startMarker2 = 'b';
+const char startMarker3 = 'c';
+const char startMarker4 = 'd';
+const char startMarker5 = 'e';
+const char endMarker   = '\r';
+
+// Angle values for sending to links
+//byte x1;
 byte x2;
 byte x3;
 byte x4;
 byte x5;
-float xpwm1;
-float xpwm2;
-float xpwm3;
-float xpwm4;
-float xpwm5;
-boolean newData  = false;
-char startMarker1 = 'a';
-char startMarker2 = 'b';
-char startMarker3 = 'c';
-char startMarker4 = 'd';
-char startMarker5 = 'e';
-char endMarker   = '\r';
+//float xpwm1;
 
 void setup()
 {
@@ -55,8 +72,14 @@ void setup()
 
   Wire.begin();
 
-  myservo1.attach(servo1Pin);
+  adc2.begin();
+  adc3.begin();
+  adc4.begin();
+  adc5.begin();
+  
+  //myservo1.attach(servo1Pin);
 } // End setup function
+
 
 void loop()
 {
@@ -64,14 +87,15 @@ void loop()
 
   if(newData == true)
   {
+    /*
     x1 = atoi(input1);
     xpwm1 = map(x1, 0, 180, 1000, 2000);
-    //myservo1.writeMicroseconds(xpwm1);
-
+    myservo1.writeMicroseconds(xpwm1);
+    */
     sendData();
 
-    Serial.print(x1);
-    Serial.print("\t");
+    //Serial.print(x1);
+    //Serial.print("\t");
     Serial.print(x2);
     Serial.print("\t");
     Serial.print(x3);
@@ -83,11 +107,26 @@ void loop()
     newData = false;
   }
 
-  readFromLinks();
+  readServoData();
+
+  Serial.print(rawTorq2);
+  Serial.print("\t");
+  Serial.print(rawTorq3);
+  Serial.print("\t");
+  Serial.print(rawTorq4);
+  Serial.print("\t");
+  Serial.println(rawTorq5);
+
+  Serial.print(rawPos2);
+  Serial.print("\t");
+  Serial.print(rawPos3);
+  Serial.print("\t");
+  Serial.print(rawPos4);
+  Serial.print("\t");
+  Serial.println(rawPos5);
   
   //delay(15);
 } // End loop function
-
 
 
 void recieveData()
@@ -105,6 +144,7 @@ void recieveData()
   {
     rc = Serial.read();
 
+    // State machine for parsing input string from serial port
     if (readState != NOREAD)
     {
 
@@ -244,37 +284,21 @@ void sendData()
   Wire.write(x5);
   Wire.endTransmission();
   */
-}
+} // End sendData function
 
-void readFromLinks()
+void readServoData()
 {
-  Wire.requestFrom(moduleID2, maxBytesR);
-  readWireData(receivedBytes2);
-  Serial.print(receivedBytes2[0]);
-  Serial.print('\t');
-  Serial.print(receivedBytes2[1]);
-  Serial.print('\t');
-  rawPosVal2 = (receivedBytes2[0] << 8) + receivedBytes2[1];
-  Serial.println(rawPosVal2);
+  rawTorq2 = adc2.readADC_SingleEnded(torqADCPin);
   /*
-  Wire.requestFrom(moduleID3, maxBytesR);
-  readWireData(receivedBytes3);
-  /*
-  Wire.requestFrom(moduleID4, maxBytesR);
-  readWireData(receivedBytes4);
-  
-  Wire.requestFrom(moduleID5, maxBytesR);
-  readWireData(receivedBytes5);
+  rawTorq3 = adc3.readADC_SingleEnded(torqADCPin);
+  rawTorq4 = adc4.readADC_SingleEnded(torqADCPin);
+  rawTorq5 = adc5.readADC_SingleEnded(torqADCPin);
   */
-}
-
-void readWireData(byte arr[])
-{
-  byte index = 0;
-  while(Wire.available() && index < maxBytesR)
-  {
-    arr[index] = Wire.read();
-    index++;
-  }
-}
+  rawPos2 = adc2.readADC_SingleEnded(posADCPin);
+  /*
+  rawPos3 = adc3.readADC_SingleEnded(posADCPin);
+  rawPos4 = adc4.readADC_SingleEnded(posADCPin);
+  rawPos5 = adc5.readADC_SingleEnded(posADCPin);
+  */
+} // End readServoData function
 
