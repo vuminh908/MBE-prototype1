@@ -48,7 +48,8 @@ void loop()
   
   adcReading = adc.readADC_SingleEnded(0);
 
-  outputStr = startMarkerOut + String(adcReading) + endMarkerOut;
+  //outputStr = startMarkerOut + String(adcReading) + endMarkerOut;
+  outputStr = startMarkerOut + String(ms) + endMarkerOut;
   outputStr.toCharArray(output, numChars);
   Serial.write(output);
   //Serial.println();
