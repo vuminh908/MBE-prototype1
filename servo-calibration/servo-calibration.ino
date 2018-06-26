@@ -25,8 +25,8 @@ char output[numChars];
 
 void setup()
 {
-  Serial.begin(115200);
-  //Serial.begin(9600);
+  //Serial.begin(115200);
+  Serial.begin(9600);
 
   myservo.attach(servoPin);
 
@@ -52,7 +52,7 @@ void loop()
   outputStr = startMarkerOut + String(ms) + endMarkerOut;
   outputStr.toCharArray(output, numChars);
   Serial.write(output);
-  //Serial.println();
+  //Serial.println(outputStr);
     
   //delay(50);
 
