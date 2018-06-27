@@ -76,10 +76,15 @@ float angle2;
 float angle3;
 float angle4;
 float angle5;
-byte  txVal2;
-byte  txVal3;
-byte  txVal4;
-byte  txVal5;
+
+byte txInt2;
+byte txDec2;
+byte txInt3;
+byte txDec3;
+byte txInt4;
+byte txDec4;
+byte txInt5;
+byte txDec5;
 
 void setup()
 {
@@ -152,6 +157,7 @@ void loop()
 
 
 // Receive servo angles from serial port (can input through serial monitor or LabVIEW)
+// Reads value up to one decimal place
 void recieveData()
 {
   static byte ndx1 = 0;
@@ -292,27 +298,35 @@ void sendData()
   angle4 = atof(input4);
   angle5 = atof(input5);
 
-  // For transmission as a byte, multiply each float by 10
-  // This only includes the first decimal place in the transmission
-  txVal2 = angle2 * 10;
-  txVal3 = angle3 * 10;
-  txVal4 = angle4 * 10;
-  txVal5 = angle5 * 10;
+  // Split into two bytes for transmission - integer and decimal portions
+  txInt2 = (byte)angle2;
+  txInt3 = (byte)angle3;
+  txInt4 = (byte)angle4;
+  txInt5 = (byte)angle5;
+
+  txDec2 = (byte)((int)(angle2 * 10) % 10);
+  txDec3 = (byte)((int)(angle3 * 10) % 10);
+  txDec4 = (byte)((int)(angle4 * 10) % 10);
+  txDec5 = (byte)((int)(angle5 * 10) % 10);
 
   Wire.beginTransmission(moduleID2);
-  Wire.write(txVal2);
+  Wire.write(txInt2);
+  Wire.write(txDec2);
   Wire.endTransmission();
   /*
   Wire.beginTransmission(moduleID3);
-  Wire.write(txVal3);
+  Wire.write(txInt3);
+  Wire.write(txDec3);
   Wire.endTransmission();
   /*
   Wire.beginTransmission(moduleID4);
-  Wire.write(txVal4);
+  Wire.write(txInt4);
+  Wire.write(txDec4);
   Wire.endTransmission();
 
   Wire.beginTransmission(moduleID5);
-  Wire.write(txVal5);
+  Wire.write(txInt5);
+  Wire.write(txDec5);
   Wire.endTransmission();
   */
 } // End sendData function

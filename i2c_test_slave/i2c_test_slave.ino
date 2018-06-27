@@ -12,7 +12,8 @@ const byte moduleID = 8;
 // Servo object and values
 const byte servoPin = 9;
 Servo servo;
-byte rxVal;
+byte rxInt;
+byte rxDec;
 float angle = 90.0;
 int mappedAngle = 1500;
 
@@ -33,12 +34,11 @@ void loop()
 // Function executed upon receiving angle from master device
 void receiveData()
 {
-  rxVal = Wire.read();
-  angle = rxVal / 10.0;
+  rxInt = Wire.read();
+  rxDec = Wire.read();
+  angle = rxInt + (rxDec / 10.0);
   mappedAngle = map(angle, 0, 180, 1000, 2000);
 
-  Serial.print(rxVal);
-  Serial.print('\t');
   Serial.print(angle);
   Serial.print('\t');
   Serial.println(mappedAngle);
