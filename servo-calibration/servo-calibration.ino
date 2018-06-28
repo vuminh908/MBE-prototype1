@@ -10,7 +10,7 @@ const byte servoPin = 9;
 
 Adafruit_ADS1115 adc; // Default address is 0x48
 
-int ms; // Number of milliseconds to write to servo
+int us; // Number of microseconds to write to servo
 int adcReading;
 
 const byte numChars = 7;
@@ -39,9 +39,9 @@ void loop()
 
   if(newData == true)
   {    
-    ms = atof(input);
+    us = atof(input);
     
-    myservo.writeMicroseconds(ms);
+    myservo.writeMicroseconds(us);
 
     newData = false;
   }
@@ -49,7 +49,7 @@ void loop()
   adcReading = adc.readADC_SingleEnded(0);
 
   //outputStr = startMarkerOut + String(adcReading) + endMarkerOut;
-  outputStr = startMarkerOut + String(ms) + endMarkerOut;
+  outputStr = startMarkerOut + String(us) + endMarkerOut;
   outputStr.toCharArray(output, numChars);
   Serial.write(output);
   //Serial.println(outputStr);

@@ -12,8 +12,10 @@ const byte moduleID = 8;
 // Servo object and values
 const byte servoPin = 9;
 Servo servo;
-byte angle = 0;
-float mappedAngle = 0.0;
+byte rxInt;
+byte rxDec;
+float angle = 90.0;
+int mappedAngle = 1500;
 
 void setup() {
   Serial.begin(9600);
@@ -32,14 +34,16 @@ void loop()
 // Function executed upon receiving angle from master device
 void receiveData()
 {
-  angle = Wire.read();
+  rxInt = Wire.read();
+  rxDec = Wire.read();
+  angle = rxInt + (rxDec / 10.0);
   mappedAngle = map(angle, 0, 180, 1000, 2000);
 
   Serial.print(angle);
   Serial.print('\t');
   Serial.println(mappedAngle);
   
-  servo.writeMicroseconds(mappedAngle); // May move this to loop
+  servo.writeMicroseconds(mappedAngle);
   
   //delay(15);
 }
