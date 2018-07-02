@@ -109,11 +109,36 @@ void loop()
 
   if(newData == true)
   {
+    readServoData();
+    
+    Serial.print(rawPos1);
+    Serial.print('\t');
+    Serial.print(rawPos2);
+    Serial.print("\t");
+    Serial.print(rawPos3);
+    Serial.print("\t");
+    /*Serial.print(rawPos4);
+    Serial.print("\t");
+    Serial.println(rawPos5);
+    */
+    Serial.print(rawTorq1);
+    Serial.print("\t");
+    Serial.print(rawTorq2);
+    Serial.print("\t");
+    Serial.println(rawTorq3);
+    /*Serial.print("\t");
+    Serial.print(rawTorq4);
+    Serial.print("\t");
+    Serial.println(rawTorq5);
+    */
+    
+    //reportBack();
+
     angle1 = atof(input1);
     mappedAngle1 = map(angle1, 0, 180, 1000, 2000);
     
     sendData();
-    servo1.writeMicroseconds(mappedAngle1);
+    //servo1.writeMicroseconds(mappedAngle1);
     /*
     Serial.print(angle1);
     Serial.print("\t");
@@ -127,30 +152,6 @@ void loop()
     */
     newData = false;
   }
-
-  readServoData();
-  
-  Serial.print(rawPos1);
-  Serial.print('\t');
-  Serial.print(rawPos2);
-  Serial.print("\t");
-  /*Serial.print(rawPos3);
-  Serial.print("\t");
-  Serial.print(rawPos4);
-  Serial.print("\t");
-  Serial.println(rawPos5);
-  */
-  Serial.print(rawTorq1);
-  Serial.print("\t");
-  Serial.print(rawTorq2);
-  Serial.println("\t");
-  /*Serial.print(rawTorq3);
-  Serial.print("\t");
-  Serial.print(rawTorq4);
-  Serial.print("\t");
-  Serial.println(rawTorq5);
-  */
-  reportBack();
   
   //delay(15);
 } // End loop function
@@ -313,7 +314,7 @@ void sendData()
   Wire.write(txInt2);
   Wire.write(txDec2);
   Wire.endTransmission();
-  /*
+  
   Wire.beginTransmission(moduleID3);
   Wire.write(txInt3);
   Wire.write(txDec3);
@@ -339,7 +340,15 @@ void readServoData()
   
   rawPos1 = adc1.readADC_SingleEnded(posADCPin);
   rawPos2 = adc2.readADC_SingleEnded(posADCPin);
-  rawPos3 = 20000;
+
+  Wire.requestFrom(moduleID3, 4);
+  byte rb1 = Wire.read();
+  byte rb2 = Wire.read();
+  byte rb3 = Wire.read();
+  byte rb4 = Wire.read();
+  delay(18);
+  rawPos3 = (rb2 << 8) + rb1;
+  
   rawPos4 = 20000;
   rawPos5 = 20000;
   /*
@@ -349,7 +358,9 @@ void readServoData()
   */
   rawTorq1 = adc1.readADC_SingleEnded(torqADCPin);
   rawTorq2 = adc2.readADC_SingleEnded(torqADCPin);
-  rawTorq3 = 5000;
+
+  rawTorq3 = (rb4 << 8) + rb3;
+  
   rawTorq4 = 5000;
   rawTorq5 = 5000;
   /*
