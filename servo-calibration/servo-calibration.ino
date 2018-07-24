@@ -8,7 +8,7 @@
 Servo myservo;
 const byte servoPin = 9;
 
-Adafruit_ADS1115 adc; // Default address is 0x48
+//Adafruit_ADS1115 adc; // Default address is 0x48
 
 int us; // Number of microseconds to write to servo
 int adcReading;
@@ -30,7 +30,9 @@ void setup()
 
   myservo.attach(servoPin);
 
-  adc.begin();
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  //adc.begin();
 } // End setup function
 
 void loop()
@@ -45,7 +47,7 @@ void loop()
 
     newData = false;
   }
-  
+  /*
   adcReading = adc.readADC_SingleEnded(0);
 
   //outputStr = startMarkerOut + String(adcReading) + endMarkerOut;
@@ -53,7 +55,7 @@ void loop()
   outputStr.toCharArray(output, numChars);
   Serial.write(output);
   //Serial.println(outputStr);
-    
+  */
   //delay(50);
 
 } // End loop function

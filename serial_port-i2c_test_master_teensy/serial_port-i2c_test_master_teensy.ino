@@ -1,45 +1,50 @@
 // Serial port read:
 //   Code from user Robin2 on Arudino Forum used as reference
-// Interfacing with ADS1115 ADC+PGA:
-//   Example code from ADS1x15 documentation (by Bill Earl and Tony DiCola) used as reference
+// Interfacing with Teensy ADC:
+//   Examples by pedvide, author of Teensy ADC library, used as reference
 
+#include <ADC.h>
 #include <Servo.h>
-#include <Wire.h>
-#include "Adafruit_ADS1015.h"
+#include <i2c_t3.h>
+
 
 // Master device's own servo
+const int minMicrosec = 906;  // Adjust min and max as needed when calibrating servo
+const int maxMicrosec = 1900;
 Servo servo1;
 const byte servo1Pin = 9;
 
-// I2C IDs of link microcontrollers
+// Master I2C address
+const byte masterID  = 0;
+
+// I2C pins
+const byte sclPin = 19;
+const byte sdaPin = 18;
+
+// I2C addresses of link microcontrollers
 const byte moduleID2 = 8;
 const byte moduleID3 = 16;
 const byte moduleID4 = 24;
 const byte moduleID5 = 32;
 
-// ADC objects (up to 4 using the ADS1115)
-Adafruit_ADS1115 adc1; // Default address is 0x48
-Adafruit_ADS1115 adc2(0x49);
-//Adafruit_ADS1115 adc3(0x4A);
-//Adafruit_ADS1115 adc4(0x4B);
-//Adafruit_ADS1115 adc5(0x4B);
+// Analog sampling
+ADC *adc = new ADC();
+ADC::Sync_result result;
+const byte posPin = A9;  // Corresponds to ADC0
+const byte torqPin = A2; // Corresponds to ADC1
 
-// ADC pins
-const byte posADCPin = 0;
-const byte torqADCPin = 1;
+// Values received from ADCs of master and slave devices
+uint16_t rawTorq1;
+uint16_t rawTorq2;
+uint16_t rawTorq3;
+uint16_t rawTorq4;
+uint16_t rawTorq5;
 
-// Values received from ADCs
-int16_t rawTorq1;
-int16_t rawTorq2;
-int16_t rawTorq3;
-int16_t rawTorq4;
-int16_t rawTorq5;
-
-int16_t rawPos1;
-int16_t rawPos2;
-int16_t rawPos3;
-int16_t rawPos4;
-int16_t rawPos5;
+uint16_t rawPos1;
+uint16_t rawPos2;
+uint16_t rawPos3;
+uint16_t rawPos4;
+uint16_t rawPos5;
 
 // Values for parsing input from or writing output to serial port
 const byte numCharsIn = 6;
@@ -77,29 +82,36 @@ float angle3;
 float angle4;
 float angle5;
 
-byte txInt2;
-byte txDec2;
-byte txInt3;
-byte txDec3;
-byte txInt4;
-byte txDec4;
-byte txInt5;
-byte txDec5;
-
 void setup()
 {
-  //Serial.begin(115200);
-  Serial.begin(9600);
+   Serial.begin(115200);
+  //Serial.begin(9600);
+  // Analog pins
+  pinMode(posPin, INPUT);
+  pinMode(torqPin, INPUT);
 
-  Wire.begin();
+  // ADC0
+  adc->setAveraging(16, ADC_0);
+  adc->setResolution(16, ADC_0);
+  adc->setConversionSpeed(ADC_CONVERSION_SPEED::LOW_SPEED, ADC_0);
+  adc->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED, ADC_0);
 
-  adc1.begin();
-  adc2.begin();
-  //adc3.begin();
-  //adc4.begin();
-  //adc5.begin();
+  // ADC1
+  adc->setAveraging(16, ADC_1);
+  adc->setResolution(16, ADC_1);
+  adc->setConversionSpeed(ADC_CONVERSION_SPEED::LOW_SPEED, ADC_1);
+  adc->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED, ADC_1);
+
+  // I2C communication
+  Wire.begin(I2C_MASTER, masterID, sclPin, sdaPin); // Default external pullups and 400kHz
+  Wire.setDefaultTimeout(200000); // Set timeout value to 200ms
   
+  // Servo
   servo1.attach(servo1Pin);
+
+  // Turn on built-in LED so we know the Teensy is on and the setup completed
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
 } // End setup function
 
 
@@ -111,34 +123,35 @@ void loop()
   {
     readServoData();
     
-    Serial.print(rawPos1);
+    /*Serial.print(rawPos1);
     Serial.print('\t');
     Serial.print(rawPos2);
     Serial.print("\t");
     Serial.print(rawPos3);
     Serial.print("\t");
-    /*Serial.print(rawPos4);
+    Serial.print(rawPos4);
     Serial.print("\t");
     Serial.println(rawPos5);
-    */
+    /*
     Serial.print(rawTorq1);
     Serial.print("\t");
-    Serial.print(rawTorq2);
-    Serial.print("\t");
-    Serial.println(rawTorq3);
+    Serial.println(rawTorq2);
     /*Serial.print("\t");
+    Serial.print(rawTorq3);
+    Serial.print("\t");
     Serial.print(rawTorq4);
     Serial.print("\t");
     Serial.println(rawTorq5);
     */
     
-    //reportBack();
+    reportBack();
 
     angle1 = atof(input1);
-    mappedAngle1 = map(angle1, 0, 180, 1000, 2000);
+    mappedAngle1 = map(angle1, 0, 180, minMicrosec, maxMicrosec);
     
     sendData();
-    //servo1.writeMicroseconds(mappedAngle1);
+    //servo1.write(angle1);
+    servo1.writeMicroseconds(mappedAngle1);
     /*
     Serial.print(angle1);
     Serial.print("\t");
@@ -152,7 +165,7 @@ void loop()
     */
     newData = false;
   }
-  
+
   //delay(15);
 } // End loop function
 
@@ -300,6 +313,15 @@ void sendData()
   angle5 = atof(input5);
 
   // Split into two bytes for transmission - integer and decimal portions
+  byte txInt2;
+  byte txDec2;
+  byte txInt3;
+  byte txDec3;
+  byte txInt4;
+  byte txDec4;
+  byte txInt5;
+  byte txDec5;
+  
   txInt2 = (byte)angle2;
   txInt3 = (byte)angle3;
   txInt4 = (byte)angle4;
@@ -314,12 +336,12 @@ void sendData()
   Wire.write(txInt2);
   Wire.write(txDec2);
   Wire.endTransmission();
-  
+  /*
   Wire.beginTransmission(moduleID3);
   Wire.write(txInt3);
   Wire.write(txDec3);
   Wire.endTransmission();
-  /*
+  
   Wire.beginTransmission(moduleID4);
   Wire.write(txInt4);
   Wire.write(txDec4);
@@ -336,38 +358,48 @@ void sendData()
 // Read raw servo data (position and torque) from ADCs
 void readServoData()
 {
-  // For now, values for servos 3 through 5 have placeholder values
-  
-  rawPos1 = adc1.readADC_SingleEnded(posADCPin);
-  rawTorq1 = adc1.readADC_SingleEnded(torqADCPin);
+  // For now, values for servos 4 and 5 have placeholder values
 
-  rawPos2 = adc2.readADC_SingleEnded(posADCPin);
-  rawTorq2 = adc2.readADC_SingleEnded(torqADCPin);
+  // Read master device's ADCs
+  /*
+  // Single reads
+  rawPos1 = adc->adc0->analogRead(posPin);
+  rawTorq1 = 5500;//adc->adc1->analogRead(torqPin);
+  */
+  // Synchronized read
+  result = adc->analogSyncRead(posPin, torqPin);
+  rawPos1 = result.result_adc0;
+  rawTorq1 = result.result_adc1;
 
+  byte rx1;
+  byte rx2;
+  byte rx3;
+  byte rx4;
+
+  Wire.requestFrom(moduleID2, 4);
+  rx1 = Wire.read();
+  rx2 = Wire.read();
+  rx3 = Wire.read();
+  rx4 = Wire.read();
+  rawPos2 = (rx2 << 8) + rx1;
+  rawTorq2 = (rx4 << 8) + rx3;
+  /*
   Wire.requestFrom(moduleID3, 4);
-  byte rb1 = Wire.read();
-  byte rb2 = Wire.read();
-  byte rb3 = Wire.read();
-  byte rb4 = Wire.read();
-  delay(18);
-  rawPos3 = (rb2 << 8) + rb1;
-  rawTorq3 = (rb4 << 8) + rb3;
+  rx1 = Wire.read();
+  rx2 = Wire.read();
+  rx3 = Wire.read();
+  rx4 = Wire.read();
+  rawPos3 = (rx2 << 8) + rx1;
+  rawTorq3 = (rx4 << 8) + rx3;
+  */
+  rawPos3 = 20000;
+  rawTorq3 = 30000;
   
   rawPos4 = 20000;
-  rawTorq4 = 5000;
+  rawTorq4 = 30000;
   
   rawPos5 = 20000;
-  rawTorq5 = 5000;
-  /*
-  rawPos3 = adc3.readADC_SingleEnded(posADCPin);
-  rawTorq3 = adc3.readADC_SingleEnded(torqADCPin);
-
-  rawPos4 = adc4.readADC_SingleEnded(posADCPin);
-  rawTorq4 = adc4.readADC_SingleEnded(torqADCPin);
-
-  rawPos5 = adc5.readADC_SingleEnded(posADCPin);
-  rawTorq5 = adc5.readADC_SingleEnded(torqADCPin);
-  */
+  rawTorq5 = 30000;
 } // End readServoData function
 
 
