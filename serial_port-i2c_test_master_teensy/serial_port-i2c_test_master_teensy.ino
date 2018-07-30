@@ -84,8 +84,8 @@ float angle5;
 
 void setup()
 {
-   Serial.begin(115200);
-  //Serial.begin(9600);
+  //Serial.begin(115200);
+  Serial.begin(9600);
   // Analog pins
   pinMode(posPin, INPUT);
   pinMode(torqPin, INPUT);
@@ -123,28 +123,28 @@ void loop()
   {
     readServoData();
     
-    /*Serial.print(rawPos1);
+    Serial.print(rawPos1);
     Serial.print('\t');
     Serial.print(rawPos2);
-    Serial.print("\t");
+    Serial.print('\t');
     Serial.print(rawPos3);
-    Serial.print("\t");
-    Serial.print(rawPos4);
-    Serial.print("\t");
+    Serial.print("\t\t");
+    /*Serial.print(rawPos4);
+    Serial.print('\t');
     Serial.println(rawPos5);
-    /*
+    */
     Serial.print(rawTorq1);
-    Serial.print("\t");
-    Serial.println(rawTorq2);
-    /*Serial.print("\t");
-    Serial.print(rawTorq3);
-    Serial.print("\t");
+    Serial.print('\t');
+    Serial.print(rawTorq2);
+    Serial.print('\t');
+    Serial.println(rawTorq3);
+    /*Serial.print('\t');
     Serial.print(rawTorq4);
-    Serial.print("\t");
+    Serial.print('\t');
     Serial.println(rawTorq5);
     */
     
-    reportBack();
+    //reportBack();
 
     angle1 = atof(input1);
     mappedAngle1 = map(angle1, 0, 180, minMicrosec, maxMicrosec);
@@ -336,12 +336,12 @@ void sendData()
   Wire.write(txInt2);
   Wire.write(txDec2);
   Wire.endTransmission();
-  /*
+  
   Wire.beginTransmission(moduleID3);
   Wire.write(txInt3);
   Wire.write(txDec3);
   Wire.endTransmission();
-  
+  /*
   Wire.beginTransmission(moduleID4);
   Wire.write(txInt4);
   Wire.write(txDec4);
@@ -383,7 +383,7 @@ void readServoData()
   rx4 = Wire.read();
   rawPos2 = (rx2 << 8) + rx1;
   rawTorq2 = (rx4 << 8) + rx3;
-  /*
+  
   Wire.requestFrom(moduleID3, 4);
   rx1 = Wire.read();
   rx2 = Wire.read();
@@ -391,10 +391,10 @@ void readServoData()
   rx4 = Wire.read();
   rawPos3 = (rx2 << 8) + rx1;
   rawTorq3 = (rx4 << 8) + rx3;
-  */
+  /*
   rawPos3 = 20000;
   rawTorq3 = 30000;
-  
+  */
   rawPos4 = 20000;
   rawTorq4 = 30000;
   

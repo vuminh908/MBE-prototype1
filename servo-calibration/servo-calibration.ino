@@ -3,7 +3,7 @@
 
 #include <Servo.h>
 #include <Wire.h>
-#include "Adafruit_ADS1015.h"
+//#include "Adafruit_ADS1015.h"
 
 Servo myservo;
 const byte servoPin = 9;
@@ -45,6 +45,8 @@ void loop()
     
     myservo.writeMicroseconds(us);
 
+    Serial.println(us);
+
     newData = false;
   }
   /*
@@ -56,7 +58,7 @@ void loop()
   Serial.write(output);
   //Serial.println(outputStr);
   */
-  //delay(50);
+  delay(30);
 
 } // End loop function
 
