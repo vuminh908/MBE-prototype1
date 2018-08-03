@@ -84,8 +84,8 @@ float angle5;
 
 void setup()
 {
-  //Serial.begin(115200);
-  Serial.begin(9600);
+  Serial.begin(115200);
+  //Serial.begin(9600);
   // Analog pins
   pinMode(posPin, INPUT);
   pinMode(torqPin, INPUT);
@@ -123,16 +123,16 @@ void loop()
   {
     readServoData();
     
-    Serial.print(rawPos1);
+    /*Serial.print(rawPos1);
     Serial.print('\t');
     Serial.print(rawPos2);
     Serial.print('\t');
     Serial.print(rawPos3);
     Serial.print("\t\t");
-    /*Serial.print(rawPos4);
+    Serial.print(rawPos4);
     Serial.print('\t');
     Serial.println(rawPos5);
-    */
+    
     Serial.print(rawTorq1);
     Serial.print('\t');
     Serial.print(rawTorq2);
@@ -144,7 +144,7 @@ void loop()
     Serial.println(rawTorq5);
     */
     
-    //reportBack();
+    reportBack();
 
     angle1 = atof(input1);
     mappedAngle1 = map(angle1, 0, 180, minMicrosec, maxMicrosec);
