@@ -1,24 +1,26 @@
 // Input 'a' followed by the desired servo angle into the Serial monitor
-// Teensy outputs the raw ADC value (representing torque)
+// Teensy outputs the raw ADC value (representing position)
 
 #include <Servo.h>
 #include <ADC.h>
 
 Servo servo;
 const byte servoPin = 9;
-const byte angle = 90; // Keep servo at constant angle of 90 degrees
+int usPWM; // Microseconds value received from LabVIEW
 
 ADC *adc = new ADC();
-const byte adcPin = A2;
-uint16_t adcReading; // In this case, raw torque value
+const byte adcPin = A9;
+uint16_t adcReading; // In this case, raw position value
 
 unsigned long usDelay = 10000; // Sampling delay, in microseconds
 unsigned long timeStamp;
 
 const byte numCharsIn = 16;
-char inputArr[numCharsIn];
+char inputArr1[numCharsIn];
+char inputArr2[numCharsIn];
 boolean newData  = false;
-const char startMarkerIn = 'a';
+const char startMarkerIn1 = 'a';
+const char startMarkerIn2 = 'b';
 const char endMarkerIn = '\r';
 const char startMarkerOut = 'a';
 const char endMarkerOut = '!';
@@ -51,14 +53,17 @@ void loop()
 
   if(newData == true)
   {    
-    usDelay = atol(inputArr);
-    //Serial.println(usDelay);
+    usDelay = atol(inputArr1);
+    usPWM = atoi(inputArr2);
+    //Serial.print(usDelay);
+    //Serial.print('\t');
+    //Serial.println(usPWM);
 
+    servo.writeMicroseconds(usPWM);
+  
     newData = false;
   }
   
-  servo.write(angle);
-
   if((micros() - timeStamp) >= usDelay)
   {
     adcReading = adc->analogRead(adcPin);
@@ -70,7 +75,7 @@ void loop()
 
     timeStamp = micros();
   }
-  
+    
 } // End loop function
 
 
@@ -78,7 +83,7 @@ void loop()
 void recieveData()
 {
   static byte ndx = 0;
-  static enum {NOREAD, READ} readState = NOREAD;
+  static enum {NOREAD, READ1, READ2} readState = NOREAD;
 
   static char rc;
 
@@ -88,26 +93,51 @@ void recieveData()
 
     if (readState != NOREAD)
     {
-      if (rc != endMarkerIn)
+      switch(readState)
       {
-        inputArr[ndx] = rc;
-        ndx++;
-        if (ndx >= numCharsIn)
+        case READ1:
         {
-          ndx = numCharsIn - 1;
+          if (rc != startMarkerIn2)
+            {
+              inputArr1[ndx] = rc;
+              ndx++;
+              if (ndx >= numCharsIn)
+              {
+                ndx = numCharsIn - 1;
+              }
+            }
+            else // rc is startMarker2, start reading second value
+            {
+              readState = READ2;
+              inputArr1[ndx] = '\0';
+              ndx = 0;
+            }
+            break;
+        }
+        case READ2:
+        {
+          if (rc != endMarkerIn)
+          {
+            inputArr2[ndx] = rc;
+            ndx++;
+            if (ndx >= numCharsIn)
+            {
+              ndx = numCharsIn - 1;
+            }
+          }
+          else // rc is endMarker, finish reading
+          {
+            readState = NOREAD;
+            inputArr2[ndx] = '\0';
+            ndx = 0;
+            newData = true;
+          }
         }
       }
-      else // rc is endMarker, finish reading
-      {
-        readState = NOREAD;
-        inputArr[ndx] = '\0';
-        ndx = 0;
-        newData = true;
-      }      
     }
-    else if (rc == startMarkerIn) // Begin reading
+    else if (rc == startMarkerIn1) // Begin reading first value
     {
-      readState = READ;
+      readState = READ1;
     }
 
   } // End while loop
