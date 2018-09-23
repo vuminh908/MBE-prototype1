@@ -123,18 +123,18 @@ void loop()
   {
     readServoData();
     
-    /*Serial.print(rawPos1);
+    Serial.print(rawPos1);
     Serial.print('\t');
-    Serial.print(rawPos2);
+    /*Serial.print(rawPos2);
     Serial.print('\t');
-    Serial.print(rawPos3);
+    /*Serial.print(rawPos3);
     Serial.print("\t\t");
     Serial.print(rawPos4);
     Serial.print('\t');
     Serial.println(rawPos5);
-    
-    Serial.print(rawTorq1);
-    Serial.print('\t');
+    */
+    Serial.println(rawTorq1);
+    /*Serial.print('\t');
     Serial.print(rawTorq2);
     Serial.print('\t');
     Serial.println(rawTorq3);
@@ -144,7 +144,7 @@ void loop()
     Serial.println(rawTorq5);
     */
     
-    reportBack();
+    //reportBack();
 
     angle1 = atof(input1);
     mappedAngle1 = map(angle1, 0, 180, minMicrosec, maxMicrosec);
@@ -331,7 +331,7 @@ void sendData()
   txDec3 = (byte)((int)(angle3 * 10) % 10);
   txDec4 = (byte)((int)(angle4 * 10) % 10);
   txDec5 = (byte)((int)(angle5 * 10) % 10);
-
+/*
   Wire.beginTransmission(moduleID2);
   Wire.write(txInt2);
   Wire.write(txDec2);
@@ -341,7 +341,7 @@ void sendData()
   Wire.write(txInt3);
   Wire.write(txDec3);
   Wire.endTransmission();
-  /*
+  
   Wire.beginTransmission(moduleID4);
   Wire.write(txInt4);
   Wire.write(txDec4);
@@ -370,7 +370,7 @@ void readServoData()
   result = adc->analogSyncRead(posPin, torqPin);
   rawPos1 = result.result_adc0;
   rawTorq1 = result.result_adc1;
-
+/*
   byte rx1;
   byte rx2;
   byte rx3;
@@ -391,15 +391,15 @@ void readServoData()
   rx4 = Wire.read();
   rawPos3 = (rx2 << 8) + rx1;
   rawTorq3 = (rx4 << 8) + rx3;
-  /*
+  
   rawPos3 = 20000;
   rawTorq3 = 30000;
-  */
+  
   rawPos4 = 20000;
   rawTorq4 = 30000;
   
   rawPos5 = 20000;
-  rawTorq5 = 30000;
+  rawTorq5 = 30000;*/
 } // End readServoData function
 
 

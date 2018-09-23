@@ -6,6 +6,7 @@
 
 Servo servo;
 const byte servoPin = 9;
+//int angle;
 int usPWM; // Microseconds value received from LabVIEW
 
 ADC *adc = new ADC();
@@ -28,6 +29,9 @@ String outputStr;
 const byte numCharsOut = 8;
 char outputArr[numCharsOut];
 
+unsigned long test;
+unsigned long testOld = 0;
+
 void setup()
 {
   Serial.begin(115200);
@@ -45,6 +49,7 @@ void setup()
   digitalWrite(LED_BUILTIN, HIGH);
 
   timeStamp = micros();
+  test = micros();
 } // End setup function
 
 void loop()
@@ -54,11 +59,13 @@ void loop()
   if(newData == true)
   {    
     usDelay = atol(inputArr1);
+    //angle = atoi(inputArr2);
     usPWM = atoi(inputArr2);
     //Serial.print(usDelay);
     //Serial.print('\t');
     //Serial.println(usPWM);
 
+    //servo.write(angle);
     servo.writeMicroseconds(usPWM);
   
     newData = false;
@@ -75,7 +82,16 @@ void loop()
 
     timeStamp = micros();
   }
-    
+
+  /*
+  testOld = test;
+  test = micros();
+  Serial.print(testOld);
+  Serial.print('\t');
+  Serial.print(test);
+  Serial.print('\t');
+  Serial.println(test-testOld);
+  */
 } // End loop function
 
 
