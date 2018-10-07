@@ -7,6 +7,7 @@
 Servo servo;
 const byte servoPin = 9;
 const byte angle = 90; // Keep servo at constant angle of 90 degrees
+int   anglePWM = 1545; // Keep servo at constant angle of 90 degrees
 
 ADC *adc = new ADC();
 const byte adcPin = A2;
@@ -56,8 +57,9 @@ void loop()
 
     newData = false;
   }
-  
-  servo.write(angle);
+
+ // servo.write(angle);
+  servo.writeMicroseconds(anglePWM);
 
   if((micros() - timeStamp) >= usDelay)
   {
