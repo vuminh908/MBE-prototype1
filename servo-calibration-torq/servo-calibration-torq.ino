@@ -7,8 +7,9 @@
 Servo servo;
 const byte servoPin = 9;
 const byte angle = 90; // Keep servo at constant angle of 90 degrees
-int   anglePWM = 1545; // Keep servo at constant angle of 90 degrees
-
+int   anglePWM = 1558; // Keep servo at constant angle of 90 degrees
+// Servo 1: anglePWM = 1545;
+// Servo 2: anglePWM = 1580;
 ADC *adc = new ADC();
 const byte adcPin = A2;
 uint16_t adcReading; // In this case, raw torque value
