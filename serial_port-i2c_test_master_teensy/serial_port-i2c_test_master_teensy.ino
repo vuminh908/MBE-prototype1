@@ -3,16 +3,7 @@
 // Interfacing with Teensy ADC:
 //   Examples by pedvide, author of Teensy ADC library, used as reference
 
-#include <ADC.h>
-#include <Servo.h>
 #include <i2c_t3.h>
-
-
-// Master device's own servo
-const int minMicrosec = 906;  // Adjust min and max as needed when calibrating servo
-const int maxMicrosec = 1900;
-Servo servo1;
-const byte servo1Pin = 9;
 
 // Master I2C address
 const byte masterID  = 0;
@@ -22,18 +13,16 @@ const byte sclPin = 19;
 const byte sdaPin = 18;
 
 // I2C addresses of link microcontrollers
-const byte moduleID2 = 8;
-const byte moduleID3 = 16;
-const byte moduleID4 = 24;
-const byte moduleID5 = 32;
+const byte moduleID1 = 8;
+const byte moduleID2 = 16;
+const byte moduleID3 = 24;
+const byte moduleID4 = 32;
+const byte moduleID5 = 40;
 
-// Analog sampling
-ADC *adc = new ADC();
-ADC::Sync_result result;
-const byte posPin = A9;  // Corresponds to ADC0
-const byte torqPin = A2; // Corresponds to ADC1
+// Number of links (at least 1)
+byte numLinks = 1;
 
-// Values received from ADCs of master and slave devices
+// Values received from ADCs of slave devices
 uint16_t rawTorq1;
 uint16_t rawTorq2;
 uint16_t rawTorq3;
@@ -60,6 +49,7 @@ const char startMarker3 = 'c';
 const char startMarker4 = 'd';
 const char startMarker5 = 'e';
 const char endMarkerIn  = '\r';
+const char startMarkerN = 'n';
 
 // (6 chars * 10 values) + 1 for endmarker + 1 for null terminator
 const byte numCharsOut = 62;
@@ -72,11 +62,8 @@ const char endMarkerOut = '!';
 String outputStr;
 char output[numCharsOut];
 
-// Angle values for master device's servo
-float angle1;
-float mappedAngle1;
-
 // Angle values for sending to links
+float angle1;
 float angle2;
 float angle3;
 float angle4;
@@ -86,28 +73,10 @@ void setup()
 {
   Serial.begin(115200);
   //Serial.begin(9600);
-  // Analog pins
-  pinMode(posPin, INPUT);
-  pinMode(torqPin, INPUT);
-
-  // ADC0
-  adc->setAveraging(16, ADC_0);
-  adc->setResolution(16, ADC_0);
-  adc->setConversionSpeed(ADC_CONVERSION_SPEED::LOW_SPEED, ADC_0);
-  adc->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED, ADC_0);
-
-  // ADC1
-  adc->setAveraging(16, ADC_1);
-  adc->setResolution(16, ADC_1);
-  adc->setConversionSpeed(ADC_CONVERSION_SPEED::LOW_SPEED, ADC_1);
-  adc->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED, ADC_1);
 
   // I2C communication
   Wire.begin(I2C_MASTER, masterID, sclPin, sdaPin); // Default external pullups and 400kHz
   Wire.setDefaultTimeout(200000); // Set timeout value to 200ms
-  
-  // Servo
-  servo1.attach(servo1Pin);
 
   // Turn on built-in LED so we know the Teensy is on and the setup completed
   pinMode(LED_BUILTIN, OUTPUT);
@@ -125,33 +94,31 @@ void loop()
     
     Serial.print(rawPos1);
     Serial.print('\t');
-    /*Serial.print(rawPos2);
+    Serial.print(rawPos2);
     Serial.print('\t');
-    /*Serial.print(rawPos3);
-    Serial.print("\t\t");
+    Serial.print(rawPos3);
+    Serial.print('\t');
     Serial.print(rawPos4);
     Serial.print('\t');
-    Serial.println(rawPos5);
-    */
-    Serial.println(rawTorq1);
-    /*Serial.print('\t');
+    Serial.print(rawPos5);
+    Serial.print("\t\t");
+    /**/
+    /**/
+    Serial.print(rawTorq1);
+    Serial.print('\t');
     Serial.print(rawTorq2);
     Serial.print('\t');
-    Serial.println(rawTorq3);
-    /*Serial.print('\t');
+    Serial.print(rawTorq3);
+    Serial.print('\t');
     Serial.print(rawTorq4);
     Serial.print('\t');
     Serial.println(rawTorq5);
-    */
+    /**/
     
     //reportBack();
-
-    angle1 = atof(input1);
-    mappedAngle1 = map(angle1, 0, 180, minMicrosec, maxMicrosec);
-    
+        
     sendData();
-    //servo1.write(angle1);
-    servo1.writeMicroseconds(mappedAngle1);
+    
     /*
     Serial.print(angle1);
     Serial.print("\t");
@@ -171,7 +138,7 @@ void loop()
 
 
 // Receive servo angles from serial port (can input through serial monitor or LabVIEW)
-// Reads value up to one decimal place
+// Reads value up to four significant digits (with decimal point)
 void recieveData()
 {
   static byte ndx1 = 0;
@@ -179,7 +146,7 @@ void recieveData()
   static byte ndx3 = 0;
   static byte ndx4 = 0;
   static byte ndx5 = 0;  
-  static enum {NOREAD, READ1, READ2, READ3, READ4, READ5} readState = NOREAD;
+  static enum {NOREAD, READ1, READ2, READ3, READ4, READ5, READN} readState = NOREAD;
 
   static char rc;
 
@@ -193,7 +160,27 @@ void recieveData()
 
       switch (readState)
       {
-        case READ1: // Read angle for servo A
+        case READN: // Read new link number (should be a single value)
+          {
+            if(rc != endMarkerIn)
+            {
+              // rc should be a character representing a value between 1 and 9 in ASCII
+              byte tempNum = rc - 0x30;
+              if(tempNum >= 1 && tempNum <= 9)
+              {
+                numLinks = tempNum;
+              }
+              else // Erroneous link number, don't modify numLinks, drop attempted read and move on
+              {
+                readState = NOREAD;
+              }
+            }
+            else // rc is endMarkerIn, finish reading
+            {
+              readState = NOREAD;
+            }
+          }
+        case READ1: // Read angle for servo 1
           {
             if (rc != startMarker2)
             {
@@ -204,15 +191,24 @@ void recieveData()
                 ndx1 = numCharsIn - 1;
               }
             }
-            else // rc is startMarker2, start reading servo B angle
+            else // rc is startMarker2
             {
-              readState = READ2;
               input1[ndx1] = '\0';
               ndx1 = 0;
+              if(numLinks >= 2)
+              {
+                // Start reading servo 2 angle
+                readState = READ2;
+              }
+              else
+              {
+                readState = NOREAD;
+                newData = true;
+              }
             }
             break;
           }
-        case READ2: // Read angle for servo B
+        case READ2: // Read angle for servo 2
           {
             if (rc != startMarker3)
             {
@@ -223,15 +219,24 @@ void recieveData()
                 ndx2 = numCharsIn - 1;
               }
             }
-            else // rc is startMarker3, start reading servo C angle
+            else // rc is startMarker3
             {
-              readState = READ3;
               input2[ndx2] = '\0';
               ndx2 = 0;
+              if(numLinks >= 3)
+              {
+                // Start reading servo 3 angle
+                readState = READ3;
+              }
+              else
+              {
+                readState = NOREAD;
+                newData = true;
+              }
             }
             break;
           }
-        case READ3: // Read angle for servo C
+        case READ3: // Read angle for servo 3
           {
             if (rc != startMarker4)
             {
@@ -242,15 +247,24 @@ void recieveData()
                 ndx3 = numCharsIn - 1;
               }
             }
-            else // rc is startMarker4, start reading servo D angle
+            else // rc is startMarker4
             {
-              readState = READ4;
               input3[ndx3] = '\0';
               ndx3 = 0;
+              if(numLinks >= 4)
+              {
+                // Start reading servo 4 angle
+                readState = READ4;
+              }
+              else
+              {
+                readState = NOREAD;
+                newData = true;
+              }
             }
             break;
           }
-        case READ4: // Read angle for servo D
+        case READ4: // Read angle for servo 4
           {
             if (rc != startMarker5)
             {
@@ -261,15 +275,24 @@ void recieveData()
                 ndx4 = numCharsIn - 1;
               }
             }
-            else // rc is startMarker5, start reading servo E angle
+            else // rc is startMarker5
             {
-              readState = READ5;
               input4[ndx4] = '\0';
               ndx4 = 0;
+              if(numLinks >= 5)
+              {
+                // Start reading servo 5 angle
+                readState = READ5;
+              }
+              else
+              {
+                readState = NOREAD;
+                newData = true;
+              }
             }
             break;
           }                    
-        case READ5: // Read angle for servo E
+        case READ5: // Read angle for servo 5
           {
             if (rc != endMarkerIn)
             {
@@ -282,19 +305,31 @@ void recieveData()
             }
             else // rc is endMarkerIn, finish reading
             {
-              readState = NOREAD;
               input5[ndx5] = '\0';
               ndx5 = 0;
+              readState = NOREAD;
               newData = true;
             }
             break;
           }          
-        default:
-          break;
+        default: // Should not reach here
+          {
+            // Just in case, reset everything
+            readState = NOREAD;
+            ndx1 = 0;
+            ndx2 = 0;
+            ndx3 = 0;
+            ndx4 = 0;
+            ndx5 = 0;
+            break;
+          }
       }
-
     }
-    else if (rc == startMarker1) // Begin reading
+    else if(rc == startMarkerN)  // Begin reading link number config string
+    {
+      readState = READN;
+    }
+    else if (rc == startMarker1) // Begin reading servo angles string
     {
       readState = READ1;
     }
@@ -307,12 +342,9 @@ void recieveData()
 // Send servo angles to each link
 void sendData()
 {
-  angle2 = atof(input2);
-  angle3 = atof(input3);
-  angle4 = atof(input4);
-  angle5 = atof(input5);
-
   // Split into two bytes for transmission - integer and decimal portions
+  byte txInt1;
+  byte txDec1;
   byte txInt2;
   byte txDec2;
   byte txInt3;
@@ -321,85 +353,143 @@ void sendData()
   byte txDec4;
   byte txInt5;
   byte txDec5;
-  
-  txInt2 = (byte)angle2;
-  txInt3 = (byte)angle3;
-  txInt4 = (byte)angle4;
-  txInt5 = (byte)angle5;
 
-  txDec2 = (byte)((int)(angle2 * 10) % 10);
-  txDec3 = (byte)((int)(angle3 * 10) % 10);
-  txDec4 = (byte)((int)(angle4 * 10) % 10);
-  txDec5 = (byte)((int)(angle5 * 10) % 10);
-/*
-  Wire.beginTransmission(moduleID2);
-  Wire.write(txInt2);
-  Wire.write(txDec2);
-  Wire.endTransmission();
-  
-  Wire.beginTransmission(moduleID3);
-  Wire.write(txInt3);
-  Wire.write(txDec3);
-  Wire.endTransmission();
-  
-  Wire.beginTransmission(moduleID4);
-  Wire.write(txInt4);
-  Wire.write(txDec4);
+  // Can safely assume at least 1 link
+  angle1 = atof(input1);
+  txInt1 = (byte)angle1;
+  txDec1 = (byte)((int)(angle1 * 10) % 10);
+  Wire.beginTransmission(moduleID1);
+  Wire.write(txInt1);
+  Wire.write(txDec1);
   Wire.endTransmission();
 
-  Wire.beginTransmission(moduleID5);
-  Wire.write(txInt5);
-  Wire.write(txDec5);
-  Wire.endTransmission();
-  */
+  if(numLinks >= 2)
+  {
+    angle2 = atof(input2);
+    txInt2 = (byte)angle2;
+    txDec2 = (byte)((int)(angle2 * 10) % 10);
+    Wire.beginTransmission(moduleID2);
+    Wire.write(txInt2);
+    Wire.write(txDec2);
+    Wire.endTransmission();
+  }
+  
+  if(numLinks >= 3)
+  {
+    angle3 = atof(input3);
+    txInt3 = (byte)angle3;
+    txDec3 = (byte)((int)(angle3 * 10) % 10);
+    Wire.beginTransmission(moduleID3);
+    Wire.write(txInt3);
+    Wire.write(txDec3);
+    Wire.endTransmission();
+  }
+
+  if(numLinks >= 4)
+  {
+    angle4 = atof(input4);
+    txInt4 = (byte)angle4;
+    txDec4 = (byte)((int)(angle4 * 10) % 10);
+    Wire.beginTransmission(moduleID4);
+    Wire.write(txInt4);
+    Wire.write(txDec4);
+    Wire.endTransmission();
+  }
+
+  if(numLinks >= 5)
+  {
+    angle5 = atof(input5);
+    txInt5 = (byte)angle5;
+    txDec5 = (byte)((int)(angle5 * 10) % 10);
+    Wire.beginTransmission(moduleID5);
+    Wire.write(txInt5);
+    Wire.write(txDec5);
+    Wire.endTransmission();
+  }
+  
 } // End sendData function
 
 
-// Read raw servo data (position and torque) from ADCs
+// Read raw servo data (position and torque) from links
 void readServoData()
 {
-  // For now, values for servos 4 and 5 have placeholder values
-
-  // Read master device's ADCs
-  /*
-  // Single reads
-  rawPos1 = adc->adc0->analogRead(posPin);
-  rawTorq1 = 5500;//adc->adc1->analogRead(torqPin);
-  */
-  // Synchronized read
-  result = adc->analogSyncRead(posPin, torqPin);
-  rawPos1 = result.result_adc0;
-  rawTorq1 = result.result_adc1;
-/*
   byte rx1;
   byte rx2;
   byte rx3;
   byte rx4;
 
-  Wire.requestFrom(moduleID2, 4);
+  // Can safely assume at least 1 link
+  Wire.requestFrom(moduleID1, 4);
   rx1 = Wire.read();
   rx2 = Wire.read();
   rx3 = Wire.read();
   rx4 = Wire.read();
-  rawPos2 = (rx2 << 8) + rx1;
-  rawTorq2 = (rx4 << 8) + rx3;
+  rawPos1 = (rx2 << 8) + rx1;
+  rawTorq1 = (rx4 << 8) + rx3;
+
+  if(numLinks >= 2)
+  {
+    Wire.requestFrom(moduleID2, 4);
+    rx1 = Wire.read();
+    rx2 = Wire.read();
+    rx3 = Wire.read();
+    rx4 = Wire.read();
+    rawPos2 = (rx2 << 8) + rx1;
+    rawTorq2 = (rx4 << 8) + rx3;
+  }
+  else
+  {
+    rawPos2 = 0;
+    rawTorq2 = 0;
+  }
   
-  Wire.requestFrom(moduleID3, 4);
-  rx1 = Wire.read();
-  rx2 = Wire.read();
-  rx3 = Wire.read();
-  rx4 = Wire.read();
-  rawPos3 = (rx2 << 8) + rx1;
-  rawTorq3 = (rx4 << 8) + rx3;
-  
-  rawPos3 = 20000;
-  rawTorq3 = 30000;
-  
-  rawPos4 = 20000;
-  rawTorq4 = 30000;
-  
-  rawPos5 = 20000;
-  rawTorq5 = 30000;*/
+  if(numLinks >= 3)
+  {
+    Wire.requestFrom(moduleID3, 4);
+    rx1 = Wire.read();
+    rx2 = Wire.read();
+    rx3 = Wire.read();
+    rx4 = Wire.read();
+    rawPos3 = (rx2 << 8) + rx1;
+    rawTorq3 = (rx4 << 8) + rx3;
+  }
+  else
+  {
+    rawPos3 = 0;
+    rawTorq3 = 0;
+  }
+
+  if(numLinks >= 4)
+  {
+    Wire.requestFrom(moduleID4, 4);
+    rx1 = Wire.read();
+    rx2 = Wire.read();
+    rx3 = Wire.read();
+    rx4 = Wire.read();
+    rawPos4 = (rx2 << 8) + rx1;
+    rawTorq4 = (rx4 << 8) + rx3;
+  }
+  else
+  {
+    rawPos4 = 0;
+    rawTorq4 = 0;
+  }
+
+  if(numLinks >= 5)
+  {
+    Wire.requestFrom(moduleID5, 4);
+    rx1 = Wire.read();
+    rx2 = Wire.read();
+    rx3 = Wire.read();
+    rx4 = Wire.read();
+    rawPos5 = (rx2 << 8) + rx1;
+    rawTorq5 = (rx4 << 8) + rx3;
+  }
+  else
+  {
+    rawPos5 = 0;
+    rawTorq5 = 0;
+  }
 } // End readServoData function
 
 
