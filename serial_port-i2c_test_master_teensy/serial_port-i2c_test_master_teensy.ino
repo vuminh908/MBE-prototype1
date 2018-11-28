@@ -91,7 +91,7 @@ void loop()
   if(newData == true)
   {
     readServoData();
-    
+    /*
     Serial.print(rawPos1);
     Serial.print('\t');
     Serial.print(rawPos2);
@@ -103,7 +103,7 @@ void loop()
     Serial.print(rawPos5);
     Serial.print("\t\t");
     /**/
-    /**/
+    /*
     Serial.print(rawTorq1);
     Serial.print('\t');
     Serial.print(rawTorq2);
@@ -115,7 +115,7 @@ void loop()
     Serial.println(rawTorq5);
     /**/
     
-    //reportBack();
+    reportBack();
         
     sendData();
     
