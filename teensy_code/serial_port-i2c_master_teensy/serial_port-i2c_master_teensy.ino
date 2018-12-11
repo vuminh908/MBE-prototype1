@@ -36,7 +36,8 @@ uint16_t rawPos4;
 uint16_t rawPos5;
 
 // Values for parsing input from or writing output to serial port
-const byte numCharsIn = 6;
+// 3 digits, a decimal point, 2 decimal places, and a null terminator ('\0')
+const byte numCharsIn = 7;
 char input1[numCharsIn];
 char input2[numCharsIn];
 char input3[numCharsIn];
@@ -186,9 +187,13 @@ void recieveData()
             {
               input1[ndx1] = rc;
               ndx1++;
-              if (ndx1 >= numCharsIn)
+              if (ndx1 >= numCharsIn - 1)
               {
-                ndx1 = numCharsIn - 1;
+                // More characters than expected likely due to having missed next start marker
+                // Abort current read and don't set newData to true
+                ndx1 = 0;
+                readState = NOREAD;
+                //ndx1 = numCharsIn - 1;
               }
             }
             else // rc is startMarker2
@@ -214,9 +219,13 @@ void recieveData()
             {
               input2[ndx2] = rc;
               ndx2++;
-              if (ndx2 >= numCharsIn)
+              if (ndx2 >= numCharsIn - 1)
               {
-                ndx2 = numCharsIn - 1;
+                // More characters than expected likely due to having missed next start marker
+                // Abort current read and don't set newData to true
+                ndx2 = 0;
+                readState = NOREAD;
+                //ndx2 = numCharsIn - 1;
               }
             }
             else // rc is startMarker3
@@ -242,9 +251,13 @@ void recieveData()
             {
               input3[ndx3] = rc;
               ndx3++;
-              if (ndx3 >= numCharsIn)
+              if (ndx3 >= numCharsIn - 1)
               {
-                ndx3 = numCharsIn - 1;
+                // More characters than expected likely due to having missed next start marker
+                // Abort current read and don't set newData to true
+                ndx3 = 0;
+                readState = NOREAD;
+                //ndx3 = numCharsIn - 1;
               }
             }
             else // rc is startMarker4
@@ -270,9 +283,13 @@ void recieveData()
             {
               input4[ndx4] = rc;
               ndx4++;
-              if (ndx4 >= numCharsIn)
+              if (ndx4 >= numCharsIn - 1)
               {
-                ndx4 = numCharsIn - 1;
+                // More characters than expected likely due to having missed next start marker
+                // Abort current read and don't set newData to true
+                ndx4 = 0;
+                readState = NOREAD;
+                //ndx4 = numCharsIn - 1;
               }
             }
             else // rc is startMarker5
@@ -298,9 +315,13 @@ void recieveData()
             {
               input5[ndx5] = rc;
               ndx5++;
-              if (ndx5 >= numCharsIn)
+              if (ndx5 >= numCharsIn - 1)
               {
-                ndx5 = numCharsIn - 1;
+                // More characters than expected likely due to having missed next start marker
+                // Abort current read and don't set newData to true
+                ndx5 = 0;
+                readState = NOREAD;
+                //ndx5 = numCharsIn - 1;
               }
             }
             else // rc is endMarkerIn, finish reading
