@@ -72,7 +72,7 @@ void setup()
   Wire.onReceive(receiveAngles);
 
   // Servo
-  servo.attach(servoPin);
+  servo.attach(servoPin, minMicrosec, maxMicrosec);
 
   // Turn on built-in LED so we know the Teensy is on and the setup completed
   pinMode(LED_BUILTIN, OUTPUT);

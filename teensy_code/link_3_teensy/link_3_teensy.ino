@@ -26,8 +26,8 @@ void sendValues();
 // Servo
 const int minAngle = 70;
 const int maxAngle = 110;
-const int minMicrosec = 1270;  // Adjust min and max as needed when calibrating servo
-const int maxMicrosec = 1690;
+const int minMicrosec = 1260;  // Adjust min and max as needed when calibrating servo
+const int maxMicrosec = 1670;
 const byte servoPin = 9;
 Servo servo;
 byte rxInt;
@@ -72,7 +72,7 @@ void setup()
   Wire.onReceive(receiveAngles);
 
   // Servo
-  servo.attach(servoPin);
+  servo.attach(servoPin, minMicrosec, maxMicrosec);
 
   // Turn on built-in LED so we know the Teensy is on and the setup completed
   pinMode(LED_BUILTIN, OUTPUT);
