@@ -7,7 +7,7 @@
 Servo servo;
 const byte servoPin = 9;
 ADC *adc = new ADC();
-int usPWM; // Microseconds value received from serial input
+int usPWM = 1500; // Microseconds value received from serial input
 
 const byte torqPin = A2;
 const byte posPin = A9;
@@ -17,7 +17,7 @@ uint16_t rawPos;  // Raw ADC value of feedback potentiometer voltage
 unsigned long usDelay = 10000; // Sampling delay, in microseconds
 unsigned long timeStamp;
 
-const byte numCharsIn = 4;
+const byte numCharsIn = 5;
 char inputArr[numCharsIn];
 boolean newData  = false;
 const char startMarkerIn = 'a';
@@ -56,6 +56,7 @@ void loop()
   if(newData == true)
   {    
     usPWM = atoi(inputArr);
+    //Serial.println(usPWM);
     newData = false;
   }
 
@@ -64,10 +65,11 @@ void loop()
 
   if((micros() - timeStamp) >= usDelay)
   {
-    rawTorq = adc->analogRead(torqPin);
+    //rawTorq = adc->analogRead(torqPin);
+    rawTorq = 0;
     rawPos = adc->analogRead(posPin);
     
-    outputStr = "Torque: " + String(rawTorq) + "\tPosition: " + String(rawPos) + "\r\n";
+    outputStr = "Torque: " + String(rawTorq) + "\tPosition: " + String(rawPos);
     //outputStr.toCharArray(outputArr, numCharsOut);
     //Serial.write(outputArr);
     Serial.println(outputStr);
