@@ -7,7 +7,7 @@
 Servo servo;
 const byte servoPin = 9;
 const byte angle = 90; // Keep servo at constant angle of 90 degrees
-int   anglePWM = 1500; // Keep servo at constant angle of 90 degrees
+int   anglePWM = 1450; // Keep servo at constant angle of 90 degrees
 // Servo 1: anglePWM = 1545;
 // Servo 2: anglePWM = 1580;
 // Servo 3: anglePWM = 1480;

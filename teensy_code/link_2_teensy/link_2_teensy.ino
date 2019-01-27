@@ -33,7 +33,7 @@ Servo servo;
 byte rxInt;
 byte rxDec;
 float angle = 90.0;
-int mappedAngle = 1500;
+int mappedAngle = 1465;
 
 // Analog sampling
 ADC *adc = new ADC();

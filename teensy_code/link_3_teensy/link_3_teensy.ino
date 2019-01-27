@@ -26,14 +26,14 @@ void sendValues();
 // Servo
 const int minAngle = 70;
 const int maxAngle = 110;
-const int minMicrosec = 1260;  // Adjust min and max as needed when calibrating servo
-const int maxMicrosec = 1670;
+const int minMicrosec = 1270;  // Adjust min and max as needed when calibrating servo
+const int maxMicrosec = 1690;
 const byte servoPin = 9;
 Servo servo;
 byte rxInt;
 byte rxDec;
 float angle = 90.0;
-int mappedAngle = 1500;
+int mappedAngle = 1480;
 
 // Analog sampling
 ADC *adc = new ADC();
