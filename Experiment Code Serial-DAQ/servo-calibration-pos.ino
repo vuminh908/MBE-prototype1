@@ -1,6 +1,6 @@
 // Input 'a' followed by the desired servo angle into the Serial monitor
 // Teensy outputs the raw ADC value (representing position)
-// 'a' delay 'b' pwm
+
 #include <Servo.h>
 #include <ADC.h>
 
